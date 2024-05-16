@@ -18,6 +18,17 @@ Caution most free to use LLMs do not support links to external resources. Paste 
 
 
 Results on 2024-05-16 for the prompt 'Remove all 650 fields which have 2nd indicator 0':
+
+##### Expected 
+```
+rule "remove 650 if 2nd indicator 0"
+when
+    (TRUE)
+then
+    removeField "650" if (exists "650.{*,0}")
+end
+```
+
 ##### ChatGPT3.5
 ```
 rule "Remove 650 fields with 2nd indicator 0"
