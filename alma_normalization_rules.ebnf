@@ -1,0 +1,60 @@
+#EBNF of Alma Normalization Rules
+# <rule> represents a single normalization rule, which consists of conditions and actions.
+<rule> ::= <rule_name> 'priority' <priority> 'when' '(' <conditions> ')' 'then' <actions> 'end'
+
+# <rule_name> contains a short description of what the rule does
+<rule_name> ::= string
+
+# <priority> this is the rule priority a higher priority occurs first. 2 occurs before 1 and 10 occurs before 9. priority can be omitted if it is 1, the default
+<priority> ::= [number]
+
+# <conditions> represent the conditions that need to be met for the actions to be applied. Conditions can be simple or compound, combining multiple conditions with logical operators.
+<conditions> ::= <condition> | <condition> <logical_operator> <conditions> | <boolean>
+
+# <condition> represents either a field-level condition or a subfield-level condition.
+<condition> ::= <field_condition> | <subfield_condition>
+
+<boolean> ::= 'TRUE' | 'FALSE'
+
+<field_condition> ::= <field_tag> <comparison_operator> <value>
+
+<subfield_condition> ::= <field_tag> <subfield_tag> <comparison_operator> <value>
+
+# <actions> represent the actions to be taken if the conditions are met. Actions can be transformations, moves, or deletions.
+<actions> ::= <action> | <action> <separator> <actions>
+<action> ::= <transformation> | <move> | <delete> | <remove_field_action>
+
+<transformation> ::= <field_tag> <transformation_operator> <value>
+
+<move> ::= <field_tag> <destination_tag>
+
+<delete> ::= DELETE
+
+<remove_field_action> ::= 'removeField' '"' <field_tag> '"' 'if' '(' <exists_condition> ')'
+<exists_condition> ::= 'exists' '"' <field_tag> '.' <subfield_pattern> ',' <value> '"'
+
+# <field_tag> and <subfield_tag> represent the tags for fields and subfields in MARC records.
+<field_tag> ::= ['0'-'9']{3}
+<subfield_tag> ::= ['a'-'z''0'-'9']
+
+# <subfield_pattern> represents a pattern that matches subfield tags.
+<subfield_pattern> ::= <subfield_tag> | '{' <subfield_tag_list> '}'
+<subfield_tag_list> ::= <subfield_tag> | <subfield_tag> ',' <subfield_tag_list>
+
+# <comparison_operator> represents the comparison operators used in conditions.
+<comparison_operator> ::= '=' | '!=' | '<' | '>' | '<=' | '>=' | 'CONTAINS' | 'STARTS_WITH' | 'ENDS_WITH'
+
+# <logical_operator> represents the logical operators used to combine conditions.
+<logical_operator> ::= 'AND' | 'OR' | 'NOT'
+
+# <transformation_operator> represents the operators used in transformation actions.
+<transformation_operator> ::= 'REPLACE' | 'APPEND' | 'PREPEND' | 'CONCATENATE'
+
+# <separator> is a delimiter used to separate multiple actions.
+<separator> ::= ';'
+
+# <value> represents the values used in conditions and transformations.
+<value> ::= string
+
+#<whitespace> represents a whitespace
+<whitespace> ::= {" " | "\t" | "\n" | "\r"}
