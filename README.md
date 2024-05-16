@@ -17,7 +17,7 @@ Caution most free to use LLMs do not support links to external resources. Paste 
 
 
 
-Results on 2024-05-16 for the prompt 'Removes all 650 fields which have 2nd indicator 0':
+Results on 2024-05-16 for the prompt 'Remove all 650 fields which have 2nd indicator 0':
 ##### ChatGPT3.5
 ```
 rule "Remove 650 fields with 2nd indicator 0"

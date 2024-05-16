@@ -1,5 +1,5 @@
 Given the EBNF notation for 'Alma normalization rules' at https://raw.githubusercontent.com/mehmetc/AlmaNormalizationRules/main/prompts/create_rule_from_ebnf.prompt
-Create a rule that 'Removes all 650 fields which have 2nd indicator 0'.
+Create a rule that 'Remove all 650 fields which have 2nd indicator 0'.
 Hints:
 - use '(TRUE)' as a condition when there is 1 action and the action also contains a condition. 
 - priority is by default 1 and can be omitted if no explicit priority is given.
