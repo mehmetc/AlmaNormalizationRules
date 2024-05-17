@@ -1,6 +1,6 @@
 # Alma Normalization Rules
 
-[Documentation](./alma_normalization_rules.html)
+[Documentation](https://html-preview.github.io/?url=https://github.com/mehmetc/AlmaNormalizationRules/blob/main/alma_normalization_rules.html)
 
 After seeing a presentation from 'Jill Strykowski' [Training AI To Write ExLibris Norm Rules](https://exlkdelunaddam2024.dryfta.com/program-schedule/program/368/training-ai-to-write-exlibris-norm-rules) at #ELUNA2024.
 I thought why not use an LLM to reverse engineer 'Alma Normalization Rules' into an EBNF.
