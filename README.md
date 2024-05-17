@@ -1,6 +1,6 @@
 # Alma Normalization Rules
 
-![Alma Normalization Rules railroad diagram](./alma_normalization_rules.svg)
+[Documentation](./alma_normalization_rules.html)
 
 After seeing a presentation from 'Jill Strykowski' [Training AI To Write ExLibris Norm Rules](https://exlkdelunaddam2024.dryfta.com/program-schedule/program/368/training-ai-to-write-exlibris-norm-rules) at #ELUNA2024.
 I thought why not use an LLM to reverse engineer 'Alma Normalization Rules' into an EBNF.
