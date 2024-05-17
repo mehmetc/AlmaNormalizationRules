@@ -1,3 +1,18 @@
+Given the EBNF notation for 'Alma normalization rules' at https://raw.githubusercontent.com/mehmetc/AlmaNormalizationRules/main/prompts/create_rule_from_ebnf.prompt
+Create a rule that 'Remove all 650 fields which have 2nd indicator 0'.
+Hints:
+- use '(TRUE)' as a condition when there is 1 action and the action also contains a condition. 
+- priority is by default 1 and can be omitted if no explicit priority is given.
+- Use this template to create rules:
+rule "rule name"
+priority 1
+when
+    conditions
+then
+ actions
+end
+
+```EBNF
 (*EBNF of Alma Normalization Rules*)
 grammar = { rule } ;
 (* <rule> represents a single normalization rule, which consists of conditions and actions.*)
@@ -79,3 +94,4 @@ letter = "A" | "B" | "C" | "D" | "E" | "F" | "G"
 digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 special_character = "!" | "@" | "#" | "/" | ":" | "~";
 escape_sequence =  "\\", ('"' | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u", hex, hex, hex, hex) ;
+```
