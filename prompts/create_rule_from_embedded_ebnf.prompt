@@ -1,6 +1,5 @@
-Given the EBNF notation for 'Alma normalization rules' at https://raw.githubusercontent.com/mehmetc/AlmaNormalizationRules/main/prompts/create_rule_from_ebnf.prompt
-Create a rule that 'Remove all 650 fields which have 2nd indicator 0'.
-Hints:
+Here is the EBNF notation for 'Alma normalization rules' use it to create an 'Alma normalization rule'.
+Here are some hints to help you:
 - use '(TRUE)' as a condition when there is 1 action and the action also contains a condition. 
 - priority is by default 1 and can be omitted if no explicit priority is given.
 - Use this template to create rules:
@@ -12,8 +11,28 @@ then
  actions
 end
 
-```EBNF
-(*EBNF of Alma Normalization Rules*)
+And here are examples:
+# User input: 'Remove all 650 fields which have 2nd indicator 0'
+# Your response:
+rule "remove 650 if 2nd indicator 0"
+when
+    (TRUE)
+then
+    removeField "650" if (exists "650.{*,0}")
+end
+
+# User input: move anything after the forward slash in 250 subfield a to 250 subfield b
+# Your response:
+rule "move anything after the forward slash in 250 subfield a to 250 subfield b" 
+when 
+(exists "250.a" ) 
+then
+replaceContents "250.*./" with "/$_separator_$b"
+replaceContents "250.*._separator_" with ""
+end
+
+```ebnf
+(*EBNF notation for Alma Normalization Rules*)
 grammar = { rule } ;
 (* <rule> represents a single normalization rule, which consists of conditions and actions.*)
 rule = rule_name, 'priority', priority, 'when', '(', conditions, ')', 'then', actions, 'end' ;
@@ -46,6 +65,7 @@ move = field_tag, field_tag;
 
 delete = 'DELETE';
 
+(*remove a field when the condition is true*)
 remove_field_action = 'removeField', '"', field_tag, '"', 'if', '(', exists_condition, ')';
 exists_condition = 'exists', '"', field_tag, '.', subfield_pattern, ',"', value, '"';
 
@@ -95,3 +115,6 @@ digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 special_character = "!" | "@" | "#" | "/" | ":" | "~";
 escape_sequence =  "\\", ('"' | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u", hex, hex, hex, hex) ;
 ```
+
+###
+Rule description: {RULEDESCRIPTION}

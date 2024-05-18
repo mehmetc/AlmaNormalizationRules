@@ -31,6 +31,7 @@ move = field_tag, field_tag;
 
 delete = 'DELETE';
 
+(*remove a field when the condition is true*)
 remove_field_action = 'removeField', '"', field_tag, '"', 'if', '(', exists_condition, ')';
 exists_condition = 'exists', '"', field_tag, '.', subfield_pattern, ',"', value, '"';
 
