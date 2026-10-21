@@ -1,0 +1,11 @@
+{
+  "name": "alma-normalization-rules",
+  "version": "1.0.0",
+  "description": "Create, validate and fix Ex Libris Alma MARC normalization rules (Drools syntax) with a formal EBNF grammar and a validator.",
+  "author": {
+    "name": "Mehmet Celik"
+  },
+  "homepage": "https://github.com/mehmetc/AlmaNormalizationRules",
+  "repository": "https://github.com/mehmetc/AlmaNormalizationRules",
+  "keywords": ["alma", "ex libris", "marc", "normalization rules", "drools", "cataloging", "library"]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "alma-normalization-rules",
+  "description": "Claude Code plugins for Ex Libris Alma normalization rules",
+  "owner": {
+    "name": "Mehmet Celik"
+  },
+  "plugins": [
+    {
+      "name": "alma-normalization-rules",
+      "source": "./plugins/alma-normalization-rules",
+      "description": "Create, validate and fix Alma MARC normalization rules"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 ---
 name: alma-normalization-rules
-description: Create, validate, explain and fix Ex Libris Alma MARC normalization rules (the Drools-style `rule "..." when ... then ... end` syntax used in the Alma Metadata Editor for MARC 21, UNIMARC and CNMARC records). Use when someone asks to write an Alma normalization rule, norm rule or Drools rule for bibliographic, holdings or authority records; to check or debug a rule that fails to save, gives an "Invalid escape sequence" error or does not change the record as expected; or to translate a cataloging task ("remove 650 with 2nd indicator 7", "move text after the slash in 245 a to b") into a rule. Not for XSL normalization rules or Dublin Core / MODS records.
+description: >-
+  Create, validate, explain and fix Ex Libris Alma MARC normalization rules (the Drools-style `rule "..." when ... then ... end` syntax used in the Alma Metadata Editor for MARC 21, UNIMARC and CNMARC records). Use when someone asks to write an Alma normalization rule, norm rule or Drools rule for bibliographic, holdings or authority records; to check or debug a rule that fails to save, gives an "Invalid escape sequence" error or does not change the record as expected; or to translate a cataloging task ("remove 650 with 2nd indicator 7", "move text after the slash in 245 a to b") into a rule. Not for XSL normalization rules or Dublin Core / MODS records.
 ---
 
 # Alma Normalization Rules

@@ -17,11 +17,70 @@ An EBNF is a notation that describes a syntax. An LLM can use it to write new ru
 | `alma_normalization_rules.ebnf` | The grammar (ISO 14977 EBNF), checked against the Ex Libris documentation and examples |
 | `alma_normalization_rules.html` | Railroad diagrams generated from the grammar |
 | `prompts/` | Prompts for using the grammar in any LLM chat |
-| `.claude/skills/alma-normalization-rules/` | A Claude Code skill that creates, validates and fixes rules |
+| `plugins/alma-normalization-rules/` | A Claude Code plugin with a skill that creates, validates and fixes rules |
+| `.claude-plugin/marketplace.json` | Makes this repository a Claude Code plugin marketplace |
+| `.claude/skills/alma-normalization-rules` | Symlink to the plugin's skill, so it also loads when you open this repository |
 
-## Using the Claude Code skill
+## Installing the skill
 
-Open this folder in Claude Code and ask, for example:
+### Claude Code: as a plugin (any project)
+
+Add this repository as a plugin marketplace, then install the plugin:
+
+```bash
+claude plugin marketplace add mehmetc/AlmaNormalizationRules
+```
+
+```bash
+claude plugin install alma-normalization-rules@alma-normalization-rules
+```
+
+Inside a Claude Code session you can do the same with `/plugin marketplace add mehmetc/AlmaNormalizationRules`
+and `/plugin install alma-normalization-rules@alma-normalization-rules`. Start a new session (or run `/reload-plugins`)
+and check with `claude plugin list` that the plugin is enabled.
+
+To get a newer version, update the marketplace and the plugin:
+
+```bash
+claude plugin marketplace update alma-normalization-rules
+```
+
+```bash
+claude plugin update alma-normalization-rules@alma-normalization-rules
+```
+
+To remove it again (this also uninstalls the plugin):
+
+```bash
+claude plugin marketplace remove alma-normalization-rules
+```
+
+### Claude Code: from a clone of this repository
+
+Open the cloned repository in Claude Code. The skill in `.claude/skills/` loads automatically, nothing to install.
+It is a symlink to the plugin's skill; on Windows, enable symlinks in git (`git config core.symlinks true`) before cloning.
+
+### Claude Code: copy into your personal skills
+
+To use the skill everywhere without the plugin system, copy it into your personal skills folder:
+
+```bash
+cp -R plugins/alma-normalization-rules/skills/alma-normalization-rules ~/.claude/skills/
+```
+
+### Claude.ai and the Claude desktop app
+
+Zip the skill folder so that `alma-normalization-rules/` is the top-level folder in the zip:
+
+```bash
+cd plugins/alma-normalization-rules/skills && zip -r ~/Desktop/alma-normalization-rules.zip alma-normalization-rules
+```
+
+Upload the zip under Settings → Capabilities → Skills. Turn on code execution so the skill can run its validator.
+
+## Using the skill
+
+Ask, for example:
 
 - "Write a normalization rule that removes all 650 fields with 2nd indicator 7"
 - "Validate this rule: ..."
@@ -36,15 +95,15 @@ The skill contains:
 You can also run the validator yourself:
 
 ```bash
-python3 .claude/skills/alma-normalization-rules/scripts/validate_rules.py my.rules
+python3 plugins/alma-normalization-rules/skills/alma-normalization-rules/scripts/validate_rules.py my.rules
 ```
 
 ```bash
-python3 .claude/skills/alma-normalization-rules/scripts/validate_rules.py my.rules --fix
+python3 plugins/alma-normalization-rules/skills/alma-normalization-rules/scripts/validate_rules.py my.rules --fix
 ```
 
 ```bash
-python3 .claude/skills/alma-normalization-rules/tests/test_validate_rules.py
+python3 plugins/alma-normalization-rules/skills/alma-normalization-rules/tests/test_validate_rules.py
 ```
 
 ## Using the prompts in another LLM

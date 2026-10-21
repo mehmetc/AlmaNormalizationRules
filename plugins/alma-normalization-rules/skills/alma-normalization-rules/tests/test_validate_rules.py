@@ -8,11 +8,14 @@ import subprocess
 import sys
 import unittest
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.realpath(__file__))
 SKILL = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(SKILL, "scripts"))
 
 import validate_rules as v  # noqa: E402
+
+# repository root: plugins/<plugin>/skills/<skill>; absent once the plugin is installed
+REPO_EBNF = os.path.join(SKILL, "..", "..", "..", "..", "alma_normalization_rules.ebnf")
 
 
 def codes(text, severity=None):
@@ -218,7 +221,7 @@ class Docs(unittest.TestCase):
 class Grammar(unittest.TestCase):
     def test_ebnf_well_formed(self):
         for path in (os.path.join(SKILL, "references", "alma_normalization_rules.ebnf"),
-                     os.path.join(SKILL, "..", "..", "..", "alma_normalization_rules.ebnf")):
+                     REPO_EBNF):
             if not os.path.exists(path):
                 continue
             with self.subTest(path):
@@ -228,7 +231,7 @@ class Grammar(unittest.TestCase):
 
     def test_ebnf_copies_in_sync(self):
         skill_copy = os.path.join(SKILL, "references", "alma_normalization_rules.ebnf")
-        repo_copy = os.path.join(SKILL, "..", "..", "..", "alma_normalization_rules.ebnf")
+        repo_copy = REPO_EBNF
         if os.path.exists(repo_copy):
             with open(skill_copy, encoding="utf-8") as a, open(repo_copy, encoding="utf-8") as b:
                 self.assertEqual(a.read(), b.read(), "copy the repo EBNF into references/")
