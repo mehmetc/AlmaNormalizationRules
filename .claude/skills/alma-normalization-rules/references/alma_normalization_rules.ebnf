@@ -1,0 +1,362 @@
+(* EBNF of Alma Normalization Rules (MARC 21 / UNIMARC / CNMARC, Drools syntax)
+
+   Notation: ISO/IEC 14977 EBNF.
+     ,  concatenation     |  alternative     [ ]  optional
+     { } zero or more     ( ) grouping       ? ?  informal description
+
+   Sources (validated 2026-10-21):
+     - Clarivate / Ex Libris Knowledge Center, "Working with Normalization Rules",
+       section "Normalization Rule Syntax"
+       https://knowledge.ag-software.clarivate.com/alma/en-us/Product_Documentation/Metadata_Management/Working_with_Normalization_Rules.html#Normalization_Rule_Syntax
+     - Ex Libris Developer Network, "Alma Normalization Rule Examples"
+       https://developers.exlibrisgroup.com/blog/alma-normalization-rule-examples/
+
+   Whitespace (spaces, tabs, new lines) and comments may appear between any two
+   tokens and are not repeated in every production below. Inside a quoted string
+   whitespace is significant. *)
+
+(* ===================================================================== *)
+(* Rule file                                                             *)
+(* ===================================================================== *)
+
+(* A rule file contains one or more rules. When several rules touch the same
+   fields, give them a priority: rules with a higher priority run first. *)
+rule_file = rule, { rule } ;
+
+(* <rule> a single normalization rule: a name, an optional priority, one record
+   level condition (when) and one or more actions (then) applied in order.
+   `when` must be the only word on its line; the condition goes on the next line. *)
+rule = 'rule', rule_name, [ priority_clause ],
+       'when', when_condition,
+       'then', action, { action },
+       'end' ;
+
+(* <rule_name> a short description of what the rule does.
+   At most 255 characters, no backslash, no "$$". *)
+rule_name = dq_string ;
+
+(* <priority_clause> `priority` and `salience` are synonyms. Higher runs first:
+   2 runs before 1, 10 runs before 9. Omitted means the default priority.
+   Only needed when several rules work on the same fields; otherwise rules run
+   top to bottom. *)
+priority_clause = ( 'priority' | 'salience' ), integer ;
+
+(* ===================================================================== *)
+(* Conditions                                                            *)
+(* ===================================================================== *)
+
+(* <when_condition> a boolean expression evaluated on the whole record. When it is
+   TRUE the actions are applied, otherwise the record is not processed.
+   Keep it under 200 boolean operators. Beware: a rule with several OR branches
+   that are true at the same time can fire once per true branch. *)
+when_condition = or_expression ;
+
+or_expression  = and_expression, { or_operator, and_expression } ;
+and_expression = condition_term, { and_operator, condition_term } ;
+condition_term = '(', or_expression, ')' | predicate ;
+
+or_operator  = 'OR'  | 'or' ;
+and_operator = 'AND' | 'and' ;
+
+predicate = boolean
+          | exists_test
+          | script_test
+          | duplicate_test ;
+
+(* <boolean> TRUE always applies the rule. *)
+boolean = 'TRUE' | 'true' | 'FALSE' | 'false' ;
+
+(* <exists_test>
+     exists             at least one match (data fields)
+     existsControl      at least one match (control fields: LDR, 00X)
+     existsMoreThanOnce more than one match (data fields)
+     existsFixedField   match in a UNIMARC / CNMARC 1XX fixed position field
+   Prefix with `not` to negate. *)
+exists_test = [ 'not' ], ( data_exists | control_exists | fixed_exists ) ;
+data_exists    = ( 'exists' | 'existsMoreThanOnce' ), data_condition_string ;
+control_exists = 'existsControl', control_condition_string ;
+fixed_exists   = 'existsFixedField', fixed_condition_string ;
+
+(* <script_test> true when the field contains characters of the given script,
+   e.g. containsScript "Han" "1**" *)
+script_test = 'containsScript', dq, script_name, dq, dq, tag, dq ;
+
+script_name = 'Arabic' | 'Armenian' | 'Bengali' | 'Bopomofo' | 'Braille' | 'Buhid'
+            | 'Canadian_Aboriginal' | 'Cherokee' | 'Cyrillic' | 'Devanagari'
+            | 'Ethiopic' | 'Georgian' | 'Greek' | 'Gujarati' | 'Gurmukhi' | 'Han'
+            | 'Hangul' | 'Hanunoo' | 'Hebrew' | 'Hiragana' | 'Inherited' | 'Kannada'
+            | 'Katakana' | 'Khmer' | 'Lao' | 'Latin' | 'Limbu' | 'Malayalam'
+            | 'Mongolian' | 'Myanmar' | 'Ogham' | 'Oriya' | 'Runic' | 'Sinhala'
+            | 'Syriac' | 'Tagalog' | 'Tagbanwa' | 'TaiLe' | 'Tamil' | 'Telugu'
+            | 'Thaana' | 'Thai' | 'Tibetan' | 'Yi' ;
+
+(* <duplicate_test> used in indication rules to build sets.
+     recordHasDuplicateSubfields "<tags>" "<codes>" "<charsToIgnore>"
+     recordHasDuplicateFields "<tags>" *)
+duplicate_test = 'recordHasDuplicateSubfields', dq, tag_list, dq, dq, code_list, dq,
+                 dq, { value_character }, dq
+               | 'recordHasDuplicateFields', dq, tag_list, dq ;
+
+(* <data_condition_string> a condition element is enclosed in double quotes, or in
+   single quotes when the value itself must contain a double quote (escaped as \"). *)
+data_condition_string    = dq, data_element, dq    | sq, data_element, sq ;
+control_condition_string = dq, control_element, dq | sq, control_element, sq ;
+fixed_condition_string   = dq, fixed_element, dq   | sq, fixed_element, sq ;
+
+(* <if_clause> an action level condition. It is evaluated per field: the field
+   tested in the condition must be the same field as the one the action works on.
+   A pipe in the value means OR: exists "900.a.Design|Architecture". *)
+if_clause = 'if', '(', if_condition, ')' ;
+if_condition = '(', if_condition, ')'
+             | [ 'not' ], ( data_exists | control_exists | fixed_exists ) ;
+
+(* ===================================================================== *)
+(* Record elements (the text inside the quotes)                          *)
+(* ===================================================================== *)
+
+(* <data_element> examples:
+     245              FIELD
+     245.{1,2}        FIELD_INDICATOR
+     245.a            FIELD_SUBFIELD_CODE
+     245.{1,2}.a      FIELD_INDICATOR_SUBFIELD_CODE
+     245.a.value*     FIELD_SUBFIELD_CODE_VALUE
+     245.{1,2}.a.v*   FIELD_INDICATOR_SUBFIELD_CODE_VALUE *)
+data_element = tag, [ '.', indicators ], [ '.', subfield_code, [ '.', match_value ] ] ;
+
+(* <control_element> examples: 008, LDR.{17,3}, 008.{35,3}.eng *)
+control_element = tag, [ '.', position_length ], [ '.', match_value ] ;
+
+(* <fixed_element> UNIMARC / CNMARC 1XX fixed position fields, e.g. 100.{*,*}.a.{17,3}.* *)
+fixed_element = tag, [ '.', indicators ], [ '.', subfield_code ],
+                [ '.', position_length ], [ '.', match_value ] ;
+
+(* <tag> three characters: a MARC tag 000-999, LDR, or a temporary field such as
+   TMP / YLK / ABC. A trailing * is a wildcard: 9* or 6** matches 9XX / 6XX. *)
+tag = tag_character, tag_character, tag_character
+    | tag_character, tag_character, '*'
+    | tag_character, '*', [ '*' ] ;
+tag_character = digit | upper_letter ;
+
+(* <tag_list> comma separated tags without spaces, e.g. 610,630,650 *)
+tag_list = tag, { ',', tag } ;
+
+(* <indicators> {<ind1>,<ind2>}. * matches any indicator, - (or a space) is an
+   empty / undefined indicator. *)
+indicators = '{', indicator, ',', indicator, '}' ;
+indicator  = digit | letter | '*' | '-' | ' ' | '#' ;
+
+(* <subfield_code> a single letter or digit; * matches any subfield. *)
+subfield_code = digit | letter | '*' ;
+
+(* <code_list> subfield codes written together without separators, e.g. xyz or 92 *)
+code_list = subfield_code, { subfield_code } ;
+
+(* <code_csv> comma separated subfield codes, e.g. a,b (used by combineFields) *)
+code_csv = subfield_code, { ',', subfield_code } ;
+
+(* <position_length> {<start position>,<length>} inside a control/fixed field. *)
+position_length = '{', integer, ',', integer, '}' ;
+
+(* <match_value> text to match. * matches any string (greedy, also empty).
+   | separates alternatives (OR). Limited regular expressions (for example ^0+ followed by a
+   capture group, with $1 in the replacement) are accepted but not fully supported.
+   A wildcard cannot be the first character of the whole quoted string. *)
+match_value = value, { '|', value } ;
+
+(* <value> literal text. Use \\\\. for a period that is the last character (best
+   practice: before every literal period); \\\\| for a literal pipe in a condition. *)
+value = { value_character } ;
+
+(* ===================================================================== *)
+(* Actions                                                               *)
+(* ===================================================================== *)
+
+(* <action> each action works on one field. Actions run in the order written.
+   Every action except moveSubfieldsToEndOfField accepts an optional if clause. *)
+action = conditional_action, [ if_clause ]
+       | move_subfields_to_end_of_field
+       | set_indication ;
+
+conditional_action = change_control_field | change_field | change_sub_field
+                   | change_indicator | combine_fields
+                   | add_field | add_control_field | add_sub_field | add_system_number
+                   | copy_field | copy_control_field
+                   | remove_control_field | remove_field | remove_sub_field
+                   | replace_control_contents | replace_contents
+                   | replace_sub_field_contents | replace_fixed_contents
+                   | prefix | prefix_sub_field | suffix | suffix_sub_field
+                   | add_creating_agency | add_modifying_agency | replace_modifying_agency
+                   | split_sub_field
+                   | correct_duplicate_subfields | correct_duplicate_fields ;
+
+(* --- Replace fields and subfields with other fields and subfields --- *)
+
+(* Changes the tag of a control field; contents are unchanged.
+   changeControlField "007" to "008" *)
+change_control_field = 'changeControlField', dq, tag, dq, 'to', dq, tag, dq ;
+
+(* Changes the tag; indicators and subfields are unchanged.
+   changeField "245" to "246" *)
+change_field = 'changeField', dq, tag, dq, 'to', dq, tag, dq ;
+
+(* Changes subfield <code> to <new code>: all, only the first, or all except the first.
+   changeSubField "035.b" to "a" *)
+change_sub_field = ( 'changeSubField' | 'changeSubFieldOnlyFirst' | 'changeSubFieldExceptFirst' ),
+                   dq, tag, '.', subfield_code, dq, 'to', dq, subfield_code, dq ;
+
+(* Sets an indicator. changeFirstIndicator "245" to "3" *)
+change_indicator = ( 'changeFirstIndicator' | 'changeSecondIndicator' ),
+                   dq, tag, dq, 'to', dq, indicator_value, dq ;
+indicator_value = digit | lower_letter | ' ' ;
+
+(* Combines all fields <tag> into the first one, excluding the listed subfields.
+   combineFields "852" excluding "a,b" *)
+combine_fields = 'combineFields', dq, tag, dq, 'excluding', dq, [ code_csv ], dq ;
+
+(* --- Add fields and subfields --- *)
+
+(* addField "999.a.RESTRICTED"   addField "650.{-,0}.a.Feminist theory" *)
+add_field = 'addField', dq, tag, [ '.', indicators ], '.', subfield_code, '.', value, dq ;
+
+(* addControlField "008.820305s1991####nyu###########001#0#eng##" *)
+add_control_field = 'addControlField', dq, tag, '.', value, dq ;
+
+(* Adds a subfield to an existing field; nothing happens when the field is missing.
+   addSubField "245.h.[Journal]" *)
+add_sub_field = 'addSubField', dq, tag, [ '.', indicators ], '.', subfield_code, '.', value, dq ;
+
+(* Builds (<prefix tag content>)<tag content>.
+   addSystemNumber "035.a" from "001" prefixed by "003" *)
+add_system_number = 'addSystemNumber', dq, tag, '.', subfield_code, dq,
+                    'from', dq, tag, dq, 'prefixed', 'by', dq, value, dq ;
+
+(* --- Copy fields --- *)
+
+(* Creates a new field; combine afterwards with combineFields when needed.
+   copyField "971.a" to "100.u"   copyField "300" to "901.{1,2}"   copyField "001" to "035.a" *)
+copy_field = 'copyField', dq, tag, [ '.', subfield_code ], dq,
+             'to', dq, tag, [ '.', indicators ], [ '.', subfield_code ], dq ;
+
+(* Not in the syntax table, but used in the official examples.
+   copyControlField "008" to "009" *)
+copy_control_field = 'copyControlField', dq, tag, [ '.', subfield_code ], dq, 'to', dq, tag, dq ;
+
+(* --- Remove fields and subfields --- *)
+
+(* Removes all occurrences. Alma recreates a removed 008: re-add it with addControlField.
+   removeControlField "009" *)
+remove_control_field = 'removeControlField', dq, tag, dq ;
+
+(* removeField "880"   removeField "9*" *)
+remove_field = 'removeField', dq, tag, dq ;
+
+(* removeSubField "245.h" *)
+remove_sub_field = 'removeSubField', dq, tag, '.', subfield_code, dq ;
+
+(* --- Replace text in fields or subfields --- *)
+
+(* Replaces <value> at {position,length} of a control field with <new value>.
+   replaceControlContents "LDR.{7,1}.s" with "m"   replaceControlContents "008.{23,1}" with "o" *)
+replace_control_contents = 'replaceControlContents', dq, tag, '.', position_length,
+                           [ '.', value ], dq, 'with', dq, value, dq ;
+
+(* Replaces matching text in a subfield (all, only the first matching subfield,
+   or all except the first). replaceContents "245.h.[Journal]" with "[Book]" *)
+replace_contents = ( 'replaceContents' | 'replaceContentsOnlyFirst' | 'replaceContentsExceptFirst' ),
+                   dq, tag, '.', subfield_code, '.', match_value, dq, 'with', dq, value, dq ;
+
+(* replaceSubFieldContents "245.b" with "100.a" *)
+replace_sub_field_contents = 'replaceSubFieldContents', dq, tag, '.', subfield_code, dq,
+                             'with', dq, tag, '.', subfield_code, dq ;
+
+(* UNIMARC / CNMARC 1XX only.
+   replaceFixedContents "100.{1,2}.a.{0,8}.20150226" with "20220724" *)
+replace_fixed_contents = 'replaceFixedContents', dq, tag, '.', indicators, '.', subfield_code, '.',
+                         position_length, '.', value, dq, 'with', dq, value, dq ;
+
+(* --- Add text in subfields --- *)
+
+(* prefix "035.b" with "(OCoLC)"   new value = <value> + old value *)
+prefix = 'prefix', dq, tag, '.', subfield_code, dq, 'with', dq, value, dq ;
+
+(* prefixSubField "910.a" with "906.a"   new value = 906.a + old value *)
+prefix_sub_field = 'prefixSubField', dq, tag, '.', subfield_code, dq,
+                   'with', dq, tag, [ '.', indicators ], '.', subfield_code, dq ;
+
+(* suffix "035.b" with "(OCoLC)"   new value = old value + <value> *)
+suffix = 'suffix', dq, tag, '.', subfield_code, dq, 'with', dq, value, dq ;
+
+(* suffixSubField "910.a" with "907.c"   new value = old value + 907.c *)
+suffix_sub_field = 'suffixSubField', dq, tag, '.', subfield_code, dq,
+                   'with', dq, tag, [ '.', indicators ], '.', subfield_code, dq ;
+
+(* --- Maintain agency information (must be enabled by Ex Libris Support) --- *)
+
+add_creating_agency      = 'addCreatingAgency', dq, tag, '.', subfield_code, dq ;
+add_modifying_agency     = 'addModifyingAgency', dq, tag, '.', subfield_code, dq ;
+replace_modifying_agency = 'replaceModifyingAgency', dq, tag, '.', subfield_code, dq ;
+
+(* --- Split subfields --- *)
+
+(* The delimiter can be any string. Without `to`, the subfield is split into
+   repeated subfields in the same field. addSeq is only relevant with `to`.
+   splitSubField "866.a.;" to "555.{0,0}.a" addSeq "8"
+   splitSubField "245.a._separator_" *)
+split_sub_field = 'splitSubField', dq, tag, [ '.', indicators ], '.', subfield_code, '.', delimiter, dq,
+                  [ 'to', dq, tag, [ '.', indicators ], '.', subfield_code, dq,
+                    [ 'addSeq', dq, subfield_code, dq ] ] ;
+delimiter = value_character, { value_character } ;
+
+(* --- Duplicates and ordering --- *)
+
+(* Removes duplicate subfields (same code and same value), keeping the first.
+   correctDuplicateSubfields "610,630" "xyz" *)
+correct_duplicate_subfields = 'correctDuplicateSubfields', dq, tag_list, dq, dq, code_list, dq ;
+
+(* Moves the first occurrence of each subfield to the end of the field, in the
+   given order, removing the other occurrences. Does NOT support an if clause.
+   moveSubfieldsToEndOfField "650" "92" *)
+move_subfields_to_end_of_field = 'moveSubfieldsToEndOfField', dq, tag, dq, dq, code_list, dq ;
+
+(* Removes duplicate fields between multiple instances of the same field.
+   correctDuplicateFields "610,630,650" *)
+correct_duplicate_fields = 'correctDuplicateFields', dq, tag_list, dq ;
+
+(* Indication rules only: set indication."true" *)
+set_indication = 'set', 'indication', '.', dq, ( 'true' | 'false' ), dq ;
+
+(* ===================================================================== *)
+(* Lexical                                                               *)
+(* ===================================================================== *)
+
+(* <comment> # at the start of a line, or // until the end of the line. *)
+comment = '#', { ? any character except new line ? }, new_line
+        | '//', { ? any character except new line ? }, new_line ;
+
+(* A double quoted string with any content, used for rule names. *)
+dq_string = dq, { value_character }, dq ;
+
+dq = '"' ;
+sq = "'" ;
+
+(* <value_character> any character except the enclosing quote and a lone
+   backslash. The subfield separator "$$" may not appear anywhere in a rule.
+   Copy/paste typographic quotes (“ ” ‘ ’) are not quote characters. *)
+value_character = ? any character except '"', "'" and '\' ? | escape_sequence ;
+
+(* Valid escape sequences. Any other backslash sequence (e.g. \z, \. \( ) is an error:
+   "Invalid escape sequence (valid ones are \b \t \n \f \r \" \' \\)". *)
+escape_sequence = '\', ( 'b' | 't' | 'n' | 'f' | 'r' | '"' | "'" | '\'
+                       | 'u', hex, hex, hex, hex ) ;
+
+integer = digit, { digit } ;
+new_line = ? line feed or carriage return ? ;
+
+hex = digit | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' ;
+
+letter = upper_letter | lower_letter ;
+upper_letter = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
+             | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' ;
+lower_letter = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm'
+             | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z' ;
+digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
